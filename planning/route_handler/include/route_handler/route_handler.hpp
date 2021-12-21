@@ -54,6 +54,12 @@ enum class LaneChangeDirection { NONE, LEFT, RIGHT };
 enum class PullOverDirection { NONE, LEFT, RIGHT };
 enum class PullOutDirection { NONE, LEFT, RIGHT };
 
+struct DrivableAreaParameters{
+  double drivable_lane_backward_length;
+  double drivable_lane_forward_length;
+  double drivable_lane_margin;
+};
+
 class RouteHandler
 {
 public:
@@ -94,6 +100,13 @@ public:
   int getNumLaneToPreferredLane(const lanelet::ConstLanelet & lanelet) const;
   bool getClosestLaneletWithinRoute(
     const Pose & search_pose, lanelet::ConstLanelet * closest_lanelet) const;
+
+  bool getClosestPreferredLaneletWithinRoute(
+    const Pose & search_pose, lanelet::ConstLanelet * closest_lanelet) const;
+
+  bool getPreviousLaneletWithinRoute(
+    const lanelet::ConstLanelet & lanelet, lanelet::ConstLanelet * prev_lanelet) const;
+
   lanelet::ConstLanelet getLaneletsFromId(const lanelet::Id id) const;
   lanelet::ConstLanelets getLaneletsFromIds(const lanelet::Ids ids) const;
   lanelet::ConstLanelets getLaneletSequence(
@@ -113,6 +126,30 @@ public:
   lanelet::routing::RelationType getRelation(
     const lanelet::ConstLanelet & prev_lane, const lanelet::ConstLanelet & next_lane) const;
   lanelet::ConstLanelets getShoulderLanelets() const;
+
+  lanelet::ConstLanelets getLaneletsFromPoint(const lanelet::ConstPoint3d & point) const;
+
+  boost::optional<lanelet::ConstLanelet> getRightLanelet(
+    const lanelet::ConstLanelet & lanelet) const;
+
+  boost::optional<lanelet::ConstLanelet> getLeftLanelet(
+    const lanelet::ConstLanelet & lanelet) const;
+
+  lanelet::ConstLanelets getNextLanelets(const lanelet::ConstLanelet & lanelet) const;
+
+  lanelet::Lanelets getOppositeLanelets(const lanelet::ConstLanelet & lanelet) const;
+
+  lanelet::Ids getNeighborLaneIds(
+    const lanelet::ConstLanelet & lanelet, const Pose & pose, const double vehicle_width,
+    const double baselink2front) const;
+
+  void updateMinMaxPosition(const lanelet::ConstPoint2d & point, double & min_x, double & min_y, double & max_x, double & max_y);
+
+  std::array<double, 4> getLaneletScope(
+    const lanelet::ConstLanelets & lanes, const size_t nearest_lane_idx,
+    const geometry_msgs::msg::Pose & current_pose,
+    const DrivableAreaParameters & params);
+
 
   // for path
   PathWithLaneId getCenterLinePath(
@@ -163,8 +200,6 @@ private:
   bool isBijectiveConnection(
     const lanelet::ConstLanelets & lanelet_section1,
     const lanelet::ConstLanelets & lanelet_section2) const;
-  bool getPreviousLaneletWithinRoute(
-    const lanelet::ConstLanelet & lanelet, lanelet::ConstLanelet * prev_lanelet) const;
   bool getNextLaneletWithinRoute(
     const lanelet::ConstLanelet & lanelet, lanelet::ConstLanelet * next_lanelet) const;
   bool getPreviousLaneletWithinRouteExceptGoal(

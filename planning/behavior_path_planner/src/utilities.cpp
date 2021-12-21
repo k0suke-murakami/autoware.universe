@@ -18,6 +18,7 @@
 #include <lanelet2_extension/utility/query.hpp>
 #include <lanelet2_extension/utility/utilities.hpp>
 #include <opencv2/opencv.hpp>
+#include <route_handler/route_handler.hpp>
 #include <tier4_autoware_utils/tier4_autoware_utils.hpp>
 
 #include <algorithm>
@@ -860,14 +861,46 @@ bool containsGoal(const lanelet::ConstLanelets & lanes, const lanelet::Id & goal
 
 // input lanes must be in sequence
 OccupancyGrid generateDrivableArea(
-  const lanelet::ConstLanelets & lanes, const PoseStamped & current_pose, const double width,
-  const double height, const double resolution, const double vehicle_length,
-  const RouteHandler & route_handler)
+  const lanelet::ConstLanelets & lanes,
+  const double resolution, const double vehicle_length,
+  const std::shared_ptr<const PlannerData> planner_data)
 {
-  // get drivable lanes
+  const auto & params = planner_data->parameters;
+  const auto route_handler = planner_data->route_handler;
+  const auto current_pose = planner_data->self_pose;
+
+  // search closest lanelet to current pose from given lanelets
+  const int nearest_lane_idx = [&]() -> int {
+      lanelet::ConstLanelet closest_lanelet;
+      if (lanelet::utils::query::getClosestLanelet(lanes, current_pose->pose, &closest_lanelet)) {
+        for (size_t i = 0; i < lanes.size(); ++i) {
+          if (lanes.at(i).id() == closest_lanelet.id()) {
+            return i;
+          }
+        }
+      }
+      return 0;
+    } ();
+
+  // calculate min/max x and y
+  route_handler::DrivableAreaParameters da_params{params.drivable_lane_backward_length,params.drivable_lane_forward_length, params.drivable_lane_margin};
+
+  const auto lanelet_scope = route_handler->getLaneletScope(
+    lanes, nearest_lane_idx,
+    current_pose->pose, da_params);
+
+  // TODO(murooka) this magic number has to be synced to obstacle_avoidance_planner boundary search
+  const double min_x = lanelet_scope.at(0) - params.drivable_area_margin;
+  const double min_y = lanelet_scope.at(1) - params.drivable_area_margin;
+  const double max_x = lanelet_scope.at(2) + params.drivable_area_margin;
+  const double max_y = lanelet_scope.at(3) + params.drivable_area_margin;
+
+  const double width = max_x - min_x;
+  const double height = max_y - min_y;
+
   lanelet::ConstLanelets drivable_lanes = lanes;
-  if (containsGoal(lanes, route_handler.getGoalLaneId())) {
-    const auto lanes_after_goal = route_handler.getLanesAfterGoal(vehicle_length);
+  if (containsGoal(lanes, route_handler->getGoalLaneId())) {
+    const auto lanes_after_goal = route_handler->getLanesAfterGoal(vehicle_length);
     drivable_lanes.insert(drivable_lanes.end(), lanes_after_goal.begin(), lanes_after_goal.end());
   }
 
@@ -876,19 +909,16 @@ OccupancyGrid generateDrivableArea(
 
   // calculate grid origin
   {
-    grid_origin.header = current_pose.header;
-    const double yaw = tf2::getYaw(current_pose.pose.orientation);
-    const double origin_offset_x_m = (-width / 4) * cos(yaw) - (-height / 2) * sin(yaw);
-    const double origin_offset_y_m = (-width / 4) * sin(yaw) + (-height / 2) * cos(yaw);
-    grid_origin.pose.orientation = current_pose.pose.orientation;
-    grid_origin.pose.position.x = current_pose.pose.position.x + origin_offset_x_m;
-    grid_origin.pose.position.y = current_pose.pose.position.y + origin_offset_y_m;
-    grid_origin.pose.position.z = current_pose.pose.position.z;
+    grid_origin.header = current_pose->header;
+
+    grid_origin.pose.position.x = std::round(min_x / resolution) * resolution;
+    grid_origin.pose.position.y = std::round(min_y / resolution) * resolution;
+    grid_origin.pose.position.z = current_pose->pose.position.z;
   }
 
   // header
   {
-    occupancy_grid.header.stamp = current_pose.header.stamp;
+    occupancy_grid.header.stamp = current_pose->header.stamp;
     occupancy_grid.header.frame_id = "map";
   }
 
@@ -922,7 +952,7 @@ OccupancyGrid generateDrivableArea(
 
       if (lane.hasAttribute("intersection_area")) {
         const std::string area_id = lane.attributeOr("intersection_area", "none");
-        const auto intersection_area = route_handler.getIntersectionAreaById(atoi(area_id.c_str()));
+        const auto intersection_area = route_handler->getIntersectionAreaById(atoi(area_id.c_str()));
         const auto poly = lanelet::utils::to2D(intersection_area).basicPolygon();
         std::vector<lanelet::BasicPolygon2d> lane_polys{};
         if (boost::geometry::intersection(poly, lane_poly, lane_polys)) {
@@ -956,6 +986,10 @@ OccupancyGrid generateDrivableArea(
     occupancy_grid.data[0] = 0;
     // cv_image_reshaped.copyTo(occupancy_grid.data);
   }
+
+  // TODO(murooka) think later
+  occupancy_grid.info.origin.position.x += 0.5 * resolution;
+  occupancy_grid.info.origin.position.y += 0.5 * resolution;
 
   return occupancy_grid;
 }
@@ -1342,8 +1376,8 @@ std::shared_ptr<PathWithLaneId> generateCenterLinePath(
   centerline_path->header = route_handler->getRouteHeader();
 
   centerline_path->drivable_area = util::generateDrivableArea(
-    current_lanes, *pose, p.drivable_area_width, p.drivable_area_height, p.drivable_area_resolution,
-    p.vehicle_length, *route_handler);
+    current_lanes, p.drivable_area_resolution,
+    p.vehicle_length, planner_data);
 
   return centerline_path;
 }
