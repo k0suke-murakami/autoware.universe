@@ -726,7 +726,8 @@ bool RouteHandler::getClosestLaneletWithinRoute(
 bool RouteHandler::getClosestPreferredLaneletWithinRoute(
   const Pose & search_pose, lanelet::ConstLanelet * closest_lanelet) const
 {
-  return lanelet::utils::query::getClosestLanelet(preferred_lanelets_, search_pose, closest_lanelet);
+  return lanelet::utils::query::getClosestLanelet(
+    preferred_lanelets_, search_pose, closest_lanelet);
 }
 
 bool RouteHandler::getNextLaneletWithinRoute(
@@ -1257,7 +1258,9 @@ lanelet::routing::RelationType RouteHandler::getRelation(
 
 lanelet::ConstLanelets RouteHandler::getShoulderLanelets() const { return shoulder_lanelets_; }
 
-void RouteHandler::updateMinMaxPosition(const lanelet::ConstPoint2d & point, double & min_x, double & min_y, double & max_x, double & max_y)
+void RouteHandler::updateMinMaxPosition(
+  const lanelet::ConstPoint2d & point, double & min_x, double & min_y, double & max_x,
+  double & max_y)
 {
   min_x = std::min(min_x, point.x());
   min_y = std::min(min_y, point.y());
@@ -1280,10 +1283,14 @@ std::array<double, 4> RouteHandler::getLaneletScope(
       }};
 
   // calculate min/max x and y
-  double min_x = current_pose.position.x - std::sqrt(2.0) * (params.drivable_lane_backward_length + params.drivable_lane_margin);
-  double min_y = current_pose.position.y - std::sqrt(2.0) * (params.drivable_lane_backward_length + params.drivable_lane_margin);
-  double max_x = current_pose.position.x + std::sqrt(2.0) * (params.drivable_lane_forward_length + params.drivable_lane_margin);
-  double max_y = current_pose.position.y + std::sqrt(2.0) * (params.drivable_lane_forward_length + params.drivable_lane_margin);
+  double min_x = current_pose.position.x - std::sqrt(2.0) * (params.drivable_lane_backward_length +
+                                                             params.drivable_lane_margin);
+  double min_y = current_pose.position.y - std::sqrt(2.0) * (params.drivable_lane_backward_length +
+                                                             params.drivable_lane_margin);
+  double max_x = current_pose.position.x + std::sqrt(2.0) * (params.drivable_lane_forward_length +
+                                                             params.drivable_lane_margin);
+  double max_y = current_pose.position.y + std::sqrt(2.0) * (params.drivable_lane_forward_length +
+                                                             params.drivable_lane_margin);
 
   for (const auto & get_bound_func : get_bound_funcs) {
     // search nearest point index to current pose
@@ -1312,7 +1319,9 @@ std::array<double, 4> RouteHandler::getLaneletScope(
     while (sum_length < params.drivable_lane_forward_length + params.drivable_lane_margin) {
       const auto & bound = get_bound_func(current_lane);
       if (current_point_idx != bound.size() - 1) {
-        sum_length += (bound[current_point_idx].basicPoint() - bound[current_point_idx + 1].basicPoint()).norm();
+        sum_length +=
+          (bound[current_point_idx].basicPoint() - bound[current_point_idx + 1].basicPoint())
+            .norm();
         updateMinMaxPosition(bound[current_point_idx + 1], min_x, min_y, max_x, max_y);
 
         ++current_point_idx;
@@ -1346,7 +1355,9 @@ std::array<double, 4> RouteHandler::getLaneletScope(
     while (sum_length < params.drivable_lane_backward_length + params.drivable_lane_margin) {
       const auto & bound = get_bound_func(current_lane);
       if (current_point_idx != 0) {
-        sum_length += (bound[current_point_idx].basicPoint() - bound[current_point_idx - 1].basicPoint()).norm();
+        sum_length +=
+          (bound[current_point_idx].basicPoint() - bound[current_point_idx - 1].basicPoint())
+            .norm();
         updateMinMaxPosition(bound[current_point_idx - 1], min_x, min_y, max_x, max_y);
 
         --current_point_idx;

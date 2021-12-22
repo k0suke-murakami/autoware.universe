@@ -241,8 +241,7 @@ cv::Point toCVPoint(
   const Point & geom_point, const double width_m, const double height_m, const double resolution);
 
 OccupancyGrid generateDrivableArea(
-  const lanelet::ConstLanelets & lanes,
-  const double resolution, const double vehicle_length,
+  const lanelet::ConstLanelets & lanes, const double resolution, const double vehicle_length,
   const std::shared_ptr<const PlannerData> planner_data);
 
 // goal management

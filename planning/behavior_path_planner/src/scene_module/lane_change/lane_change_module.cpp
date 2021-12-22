@@ -251,8 +251,8 @@ PathWithLaneId LaneChangeModule::getReferencePath() const
     *route_handler, reference_path, current_lanes, parameters_.lane_change_prepare_duration,
     lane_change_buffer);
   reference_path.drivable_area = util::generateDrivableArea(
-    current_lanes, common_parameters.drivable_area_resolution,
-    common_parameters.vehicle_length, planner_data_);
+    current_lanes, common_parameters.drivable_area_resolution, common_parameters.vehicle_length,
+    planner_data_);
 
   return reference_path;
 }

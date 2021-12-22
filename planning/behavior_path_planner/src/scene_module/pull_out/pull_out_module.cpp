@@ -295,8 +295,7 @@ void PullOutModule::updatePullOutStatus()
 
     const double resolution = common_parameters.drivable_area_resolution;
     status_.pull_out_path.path.drivable_area = util::generateDrivableArea(
-      lanes, resolution,
-      common_parameters.vehicle_length, planner_data_);
+      lanes, resolution, common_parameters.vehicle_length, planner_data_);
   }
 
   const auto arclength_start =
@@ -335,8 +334,8 @@ PathWithLaneId PullOutModule::getReferencePath() const
     parameters_.deceleration_interval, goal_pose);
 
   reference_path.drivable_area = util::generateDrivableArea(
-    pull_out_lanes, common_parameters.drivable_area_resolution,
-    common_parameters.vehicle_length, planner_data_);
+    pull_out_lanes, common_parameters.drivable_area_resolution, common_parameters.vehicle_length,
+    planner_data_);
   return reference_path;
 }
 

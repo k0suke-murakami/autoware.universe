@@ -1582,16 +1582,19 @@ double AvoidanceModule::getLeftShiftBound() const
   return parameters_.max_left_shift_length;
 }
 
-// TODO (murooka) judge when and which way to extend drivable area. current implementation is keep extending during avoidance module
-// TODO (murooka) freespace during turning in intersection where there is no neighbour lanes
-// NOTE: Assume that there is no situation where there is an object in the middle lane of more than two lanes since which way to avoid is not obvious
+// TODO(murooka) judge when and which way to extend drivable area. current implementation is keep
+// extending during avoidance module
+// TODO(murooka) freespace during turning in intersection where there is no neighbour lanes
+// NOTE: Assume that there is no situation where there is an object in the middle lane of more than
+// two lanes since which way to avoid is not obvious
 void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) const
 {
   const auto & route_handler = planner_data_->route_handler;
   lanelet::ConstLanelets extended_lanelets = avoidance_data_.current_lanelets;
 
   for (const auto & lane : avoidance_data_.current_lanelets) {
-    {  // 1. extend to right/left or adjacent right/left (where lane_change tag = no, but not a problem to extend for avoidance) lane if it exists
+    {  // 1. extend to right/left or adjacent right/left (where lane_change tag = no, but not a
+       // problem to extend for avoidance) lane if it exists
       // this can be available only if line string is shared
       const auto opt_right_lane = route_handler->getRightLanelet(lane);
       const auto opt_left_lane = route_handler->getLeftLanelet(lane);
@@ -1605,7 +1608,8 @@ void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) c
       }
     }
 
-    {  // 2. when there are multiple turning lanes whose previous lanelet is the same in intersection
+    {  // 2. when there are multiple turning lanes whose previous lanelet is the same in
+       // intersection
       const bool update_extended_lanelets = [&]() {
         // lanelet is not turning lane
         const std::string turn_direction = lane.attributeOr("turn_direction", "none");
@@ -1625,7 +1629,8 @@ void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) c
           return false;
         }
 
-        // look for neighbour lane, where end line of the lane is connected to end line of the original lane
+        // look for neighbour lane, where end line of the lane is connected to end line of the
+        // original lane
         for (const auto & next_lane : next_lanes) {
           if (lane.id() == next_lane.id()) {
             continue;
@@ -1657,8 +1662,10 @@ void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) c
       }
     }
 
-    {  // 3. deal with the problem that line string is not shared to neighbour lanelets in intersection (for left lane), assuming that points are shared
-      // this part will be removed when the map format is modified correctly wrt sharing line string since 1 works for this
+    {  // 3. deal with the problem that line string is not shared to neighbour lanelets in
+       // intersection (for left lane), assuming that points are shared
+      // this part will be removed when the map format is modified correctly wrt sharing line string
+      // since 1 works for this
       bool update_extended_lanelets = false;
       const auto & left_lane_candidates =
         route_handler->getLaneletsFromPoint(lane.leftBound().front());
@@ -1682,8 +1689,10 @@ void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) c
       }
     }
 
-    {  // 4. deal with the problem that line string is not shared to neighbour lanelets in intersection (for right lane), assuming that points are shared
-      // this part will be removed if the map format is modified correctly wrt sharing line string since 1 works for this
+    {  // 4. deal with the problem that line string is not shared to neighbour lanelets in
+       // intersection (for right lane), assuming that points are shared
+      // this part will be removed if the map format is modified correctly wrt sharing line string
+      // since 1 works for this
       bool update_extended_lanelets = false;
       const auto & right_lane_candidates =
         route_handler->getLaneletsFromPoint(lane.rightBound().front());
@@ -1708,7 +1717,8 @@ void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) c
     }
 
     {
-      // 5. if drivable area cannot be extended inside the same-direction lane, extend to even opposite lane
+      // 5. if drivable area cannot be extended inside the same-direction lane, extend to even
+      // opposite lane
       const auto opposite_lanes = route_handler->getOppositeLanelets(lane);
 
       if (!opposite_lanes.empty()) {
@@ -1719,8 +1729,10 @@ void AvoidanceModule::generateExtendedDrivableArea(ShiftedPath * shifted_path) c
       }
     }
 
-    {  // 6. deal with the problem that line string is not shared to neighbour oppsite lanelet, assuming that points are shared
-      // this part will be removed when the map format is modified correctly wrt sharing line string since 5 works for this
+    {  // 6. deal with the problem that line string is not shared to neighbour oppsite lanelet,
+       // assuming that points are shared
+      // this part will be removed when the map format is modified correctly wrt sharing line string
+      // since 5 works for this
       bool update_extended_lanelets = false;
       const auto & opposite_lane_candidates =
         route_handler->getLaneletsFromPoint(lane.rightBound().front());

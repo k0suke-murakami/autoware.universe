@@ -14,7 +14,7 @@
     # -- Configurations common to the all planners --
     # base configs
     time_limit: 30000.0
-    # robot configs # TODO replace by vehicle_info
+    # robot configs # TODO(murooka)replace by vehicle_info
     robot_length: 4.5
     robot_width: 1.75
     robot_base2back: 1.0

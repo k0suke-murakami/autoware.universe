@@ -54,7 +54,8 @@ enum class LaneChangeDirection { NONE, LEFT, RIGHT };
 enum class PullOverDirection { NONE, LEFT, RIGHT };
 enum class PullOutDirection { NONE, LEFT, RIGHT };
 
-struct DrivableAreaParameters{
+struct DrivableAreaParameters
+{
   double drivable_lane_backward_length;
   double drivable_lane_forward_length;
   double drivable_lane_margin;
@@ -143,13 +144,13 @@ public:
     const lanelet::ConstLanelet & lanelet, const Pose & pose, const double vehicle_width,
     const double baselink2front) const;
 
-  void updateMinMaxPosition(const lanelet::ConstPoint2d & point, double & min_x, double & min_y, double & max_x, double & max_y);
+  void updateMinMaxPosition(
+    const lanelet::ConstPoint2d & point, double & min_x, double & min_y, double & max_x,
+    double & max_y);
 
   std::array<double, 4> getLaneletScope(
     const lanelet::ConstLanelets & lanes, const size_t nearest_lane_idx,
-    const geometry_msgs::msg::Pose & current_pose,
-    const DrivableAreaParameters & params);
-
+    const geometry_msgs::msg::Pose & current_pose, const DrivableAreaParameters & params);
 
   // for path
   PathWithLaneId getCenterLinePath(
