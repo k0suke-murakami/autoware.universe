@@ -15,11 +15,11 @@
 #ifndef OSQP_INTERFACE__CSC_MATRIX_CONV_HPP_
 #define OSQP_INTERFACE__CSC_MATRIX_CONV_HPP_
 
-#include <vector>
-
 #include "eigen3/Eigen/Core"
 #include "osqp/glob_opts.h"  // for 'c_int' type ('long' or 'long long')
 #include "osqp_interface/visibility_control.hpp"
+
+#include <vector>
 
 namespace autoware
 {
@@ -42,6 +42,9 @@ struct OSQP_INTERFACE_PUBLIC CSC_Matrix
 OSQP_INTERFACE_PUBLIC CSC_Matrix calCSCMatrix(const Eigen::MatrixXd & mat);
 /// \brief Calculate upper trapezoidal CSC matrix from square Eigen matrix
 OSQP_INTERFACE_PUBLIC CSC_Matrix calCSCMatrixTrapezoidal(const Eigen::MatrixXd & mat);
+OSQP_INTERFACE_PUBLIC CSC_Matrix calcLowerTriangularCSCMatrix(
+  const int row_start_idx, const int zero_mat_row_size, const int zero_mat_col_size,
+  const Eigen::MatrixXd & mat);
 /// \brief Print the given CSC matrix to the standard output
 OSQP_INTERFACE_PUBLIC void printCSCMatrix(const CSC_Matrix & csc_mat);
 

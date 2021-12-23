@@ -141,7 +141,8 @@ void trimPoints(std::vector<T> & points)
 MPTOptimizer::MPTOptimizer(
   const bool is_showing_debug_info, const TrajectoryParam & traj_param,
   const VehicleParam & vehicle_param, const MPTParam & mpt_param)
-: is_showing_debug_info_(is_showing_debug_info)
+: is_showing_debug_info_(is_showing_debug_info),
+  osqp_solver_ptr_(std::make_unique<autoware::common::osqp::OSQPInterface>(1.0e-3))
 {
   traj_param_ptr_ = std::make_unique<TrajectoryParam>(traj_param);
   vehicle_param_ptr_ = std::make_unique<VehicleParam>(vehicle_param);
@@ -784,6 +785,10 @@ boost::optional<Eigen::VectorXd> MPTOptimizer::executeOptimization(
     return Eigen::VectorXd{};
   }
 
+  const size_t N_ref = ref_points.size();
+  const size_t DIM_U = vehicle_model_ptr_->getDimU();
+  const size_t DIM_X = vehicle_model_ptr_->getDimX();
+
   tier4_autoware_utils::StopWatch stop_watch;
   stop_watch.tic("total");
 
@@ -802,9 +807,14 @@ boost::optional<Eigen::VectorXd> MPTOptimizer::executeOptimization(
     "          getConstraintMatrix:= %f [ms]", get_const_ms);
 
   stop_watch.tic();
-  osqp_solver_ptr_ = std::make_unique<autoware::common::osqp::OSQPInterface>(
-    obj_m.hessian, const_m.linear, obj_m.gradient, const_m.lower_bound, const_m.upper_bound,
-    1.0e-3);
+  osqp_solver_ptr_->updateCscP(
+    autoware::common::osqp::calcLowerTriangularCSCMatrix(0, DIM_X, DIM_U, obj_m.hessian));
+  osqp_solver_ptr_->updateQ(obj_m.gradient);
+  osqp_solver_ptr_->updateCscA(
+    autoware::common::osqp::calcLowerTriangularCSCMatrix(DIM_X, DIM_X, DIM_X, const_m.linear));
+  osqp_solver_ptr_->updateL(const_m.lower_bound);
+  osqp_solver_ptr_->updateU(const_m.upper_bound);
+
   osqp_solver_ptr_->updateEpsRel(1.0e-3);
   const double osqp_init_ms = stop_watch.toc() * 1000.0;
   RCLCPP_INFO_EXPRESSION(
@@ -826,9 +836,6 @@ boost::optional<Eigen::VectorXd> MPTOptimizer::executeOptimization(
 
   std::vector<double> result_vec = std::get<0>(result);
 
-  const size_t N_ref = ref_points.size();
-  const size_t DIM_U = vehicle_model_ptr_->getDimU();
-  const size_t DIM_X = vehicle_model_ptr_->getDimX();
   const Eigen::VectorXd optimized_control_variables =
     Eigen::Map<Eigen::VectorXd>(&result_vec[0], DIM_X + (N_ref - 1) * DIM_U);
 

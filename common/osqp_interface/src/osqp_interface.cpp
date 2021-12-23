@@ -43,7 +43,7 @@ OSQPInterface::OSQPInterface(const c_float eps_abs, const bool8_t polish)
     m_settings->eps_abs = eps_abs;
     m_settings->eps_prim_inf = 1.0E-4;
     m_settings->eps_dual_inf = 1.0E-4;
-    m_settings->warm_start = true;
+    m_settings->warm_start = false; // true;
     m_settings->max_iter = 4000;
     m_settings->verbose = false;
     m_settings->polish = polish;
@@ -74,6 +74,11 @@ void OSQPInterface::updateP(const Eigen::MatrixXd & P_new)
   osqp_update_P(m_work, P_csc.m_vals.data(), OSQP_NULL, static_cast<c_int>(P_csc.m_vals.size()));
 }
 
+void OSQPInterface::updateCscP(const CSC_Matrix & P_csc)
+{
+  osqp_update_P(m_work, P_csc.m_vals.data(), OSQP_NULL, static_cast<c_int>(P_csc.m_vals.size()));
+}
+
 void OSQPInterface::updateA(const Eigen::MatrixXd & A_new)
 {
   /*
@@ -86,6 +91,18 @@ void OSQPInterface::updateA(const Eigen::MatrixXd & A_new)
   CSC_Matrix A_csc = calCSCMatrix(A_new);
   osqp_update_A(m_work, A_csc.m_vals.data(), OSQP_NULL, static_cast<c_int>(A_csc.m_vals.size()));
   return;
+}
+
+void OSQPInterface::updateCscA(const CSC_Matrix & A_csc)
+{
+  osqp_update_A(m_work, A_csc.m_vals.data(), OSQP_NULL, static_cast<c_int>(A_csc.m_vals.size()));
+}
+
+void OSQPInterface::updateQ(const std::vector<double> & q_new)
+{
+  std::vector<double> q_tmp(q_new.begin(), q_new.end());
+  double * q_dyn = q_tmp.data();
+  osqp_update_lin_cost(m_work, q_dyn);
 }
 
 void OSQPInterface::updateL(const std::vector<double> & l_new)

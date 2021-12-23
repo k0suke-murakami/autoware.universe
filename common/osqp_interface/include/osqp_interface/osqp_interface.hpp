@@ -137,7 +137,9 @@ public:
   //   l_new: (m) vector defining the lower bound problem constraint.
   //   u_new: (m) vector defining the upper bound problem constraint.
   void updateP(const Eigen::MatrixXd & P_new);
+  void updateCscP(const CSC_Matrix & P_csc);
   void updateA(const Eigen::MatrixXd & A_new);
+  void updateCscA(const CSC_Matrix & A_csc);
   void updateQ(const std::vector<double> & q_new);
   void updateL(const std::vector<double> & l_new);
   void updateU(const std::vector<double> & u_new);
