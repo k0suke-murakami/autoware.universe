@@ -1312,7 +1312,7 @@ MPTOptimizer::ObjectiveMatrix MPTOptimizer::getObjectiveMatrix(
   std::vector<Eigen::Triplet<double>> triplet_T_vec;
   const double offset = mpt_param_ptr_->optimization_center_offset;
 
-  for (size_t i = 0; i < N_ref; ++i) {
+  for (size_t i = 1; i < N_ref; ++i) {
     const double alpha = ref_points.at(i).alpha;
 
     triplet_T_vec.push_back(Eigen::Triplet<double>(i * DIM_X, i * DIM_X, std::cos(alpha)));
@@ -1328,11 +1328,11 @@ MPTOptimizer::ObjectiveMatrix MPTOptimizer::getObjectiveMatrix(
   const Eigen::MatrixXd QB = m.Qex * B;
   const Eigen::MatrixXd R = m.Rex;
 
-  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(N_ref, N_ref);
+  Eigen::MatrixXd H = Eigen::MatrixXd::Zero(N_ref + 1, N_ref + 1);
   H.triangularView<Eigen::Upper>() = B.transpose() * QB + R;
   H.triangularView<Eigen::Lower>() = H.transpose();
 
-  Eigen::VectorXd f = (sparse_T_mat * m.Wex + T_vec).transpose() * QB;
+  Eigen::VectorXd f =((sparse_T_mat * m.Wex + T_vec).transpose() * QB).transpose();
 
   // addSteerWeightF(f);
 
@@ -1346,34 +1346,35 @@ MPTOptimizer::ObjectiveMatrix MPTOptimizer::getObjectiveMatrix(
 
   const size_t num_objective_variables = [&]() {
     if (mpt_param_ptr_->avoiding_constraint_type == 1) {  // hard
-      return N_ref * 1;                                   // steer
+      return (N_ref + 1) * 1;                             // steer
     }
 
     // steer + slack variables for each vehicle circle
-    return N_ref * (1 + num_soft_first_slack_variables + num_soft_second_slack_variables);
+    return (N_ref + 1) * (1 + num_soft_first_slack_variables + num_soft_second_slack_variables);
   }();
 
   // extend h for slack variables
-  Eigen::MatrixXd extend_h = Eigen::MatrixXd::Zero(N_ref, N_ref);
+  Eigen::MatrixXd extend_h = Eigen::MatrixXd::Zero(N_ref + 1, N_ref + 1);
   Eigen::MatrixXd concat_h =
     Eigen::MatrixXd::Zero(num_objective_variables, num_objective_variables);
-  concat_h.block(0, 0, N_ref, N_ref) = H;
+  concat_h.block(0, 0, N_ref + 1, N_ref + 1) = H;
   if (mpt_param_ptr_->avoiding_constraint_type != 1) {  // soft or soft + hard
     for (size_t i = 0; i < num_soft_first_slack_variables + num_soft_second_slack_variables; ++i) {
-      concat_h.block(N_ref * (i + 1), N_ref * (i + 1), N_ref, N_ref) = extend_h;
+      concat_h.block((N_ref + 1) * (i + 1), (N_ref + 1) * (i + 1), N_ref + 1, N_ref + 1) = extend_h;
     }
   }
 
   // extend f for slack variables
-  Eigen::VectorXd extend_f = Eigen::VectorXd::Ones(N_ref);
+  Eigen::VectorXd extend_f = Eigen::VectorXd::Ones(N_ref + 1);
   Eigen::VectorXd concat_f = Eigen::VectorXd::Zero(num_objective_variables);
-  concat_f.segment(0, N_ref) = f;
+  concat_f.segment(0, N_ref + 1) = f;
   if (mpt_param_ptr_->avoiding_constraint_type != 1) {  // soft or soft + hard
     for (size_t i = 0; i < num_soft_first_slack_variables; ++i) {
-      concat_f.segment(N_ref * (i + 1), N_ref) = mpt_param_ptr_->soft_avoidance_weight * extend_f;
+      concat_f.segment((N_ref + 1) * (i + 1), N_ref + 1) =
+        mpt_param_ptr_->soft_avoidance_weight * extend_f;
     }
     for (size_t i = 0; i < num_soft_second_slack_variables; ++i) {
-      concat_f.segment(N_ref * (i + 1), N_ref) =
+      concat_f.segment((N_ref + 1) * (i + 1), N_ref + 1) =
         mpt_param_ptr_->soft_second_avoidance_weight * extend_f;
     }
   }
