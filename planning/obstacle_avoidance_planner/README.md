@@ -175,7 +175,18 @@ For $k$'th point ($\boldsymbol{p}_k$), the objective function is as follows.
 The beginning and end point are fixed during the optimization.
 
 $$
-\min \sum_{k=1}^{n-1} |\boldsymbol{p}_{k+1} - \boldsymbol{p}_{k}| - |\boldsymbol{p}_{k} - \boldsymbol{p}_{k-1}|
+\ J = min \sum_{k=1}^{n-1} |\boldsymbol{p}_{k+1} - \boldsymbol{p}_{k}| - |\boldsymbol{p}_{k} - \boldsymbol{p}_{k-1}|
+$$
+
+By assuming artificial force between 2 points as $\boldsymbol{N}_k$, the objective can be written as follows.
+![elastic_band](./media/elastic_band.png)
+
+$$
+\begin{align}
+\ J & = min \sum_{k=1}^{n-1} ||\boldsymbol{N}_{k}||^2 \\
+& = min \sum_{k=1}^{n-1} ||F_{k-1} - F_k ||^2 \\
+& = min \sum_{k=1}^{n-1} ||2p_k - p_{k-1} - p_{k+1}||^2
+\end{align}
 $$
 
 ### Model predictive trajectory
